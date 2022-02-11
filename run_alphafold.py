@@ -410,8 +410,10 @@ def main(argv):
 
   if FLAGS.use_mmseqs:
       # Precalculate MSAs with MMSEQ API
+      # TODO: Modify this to be proper template searcher
       mmseq_output_dir = os.path.join(FLAGS.output_dir, 'msas')
-      run_mmseq(FLAGS.fasta_paths, mmseq_output_dir, FLAGS)
+      for fasta in FLAGS.fasta_paths:
+        run_mmseq(fasta, mmseq_output_dir, FLAGS)
       FLAGS.use_precomputed_msas = True
 
   if run_multimer_system:
