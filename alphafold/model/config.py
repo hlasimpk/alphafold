@@ -650,6 +650,7 @@ CONFIG_MULTIMER = ml_collections.ConfigDict({
                 'weight': 1.0
             }
         },
+        'num_ensemble_train': 1,
         'num_ensemble_eval': 1,
         'num_recycle': 3,
         'resample_msa_in_recycling': True

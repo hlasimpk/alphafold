@@ -28,6 +28,7 @@ from absl import flags
 from absl import logging
 from alphafold.common import protein
 from alphafold.common import residue_constants
+from alphafold.data import mmseqs2
 from alphafold.data import pipeline
 from alphafold.data import pipeline_multimer
 from alphafold.data import templates
@@ -129,6 +130,11 @@ flags.DEFINE_boolean('use_gpu_relax', None, 'Whether to relax on GPU. '
                      'Relax on GPU can be much faster than CPU, so it is '
                      'recommended to enable if possible. GPUs must be available'
                      ' if this setting is enabled.')
+flags.DEFINE_boolean('is_training', False,
+                     'Select whether to use is_training mode when running '
+                     'inference on sequence')
+flags.DEFINE_boolean('use_mmseqs', True,
+                     'Select whether to use mmseqs to perform MSA')
 
 FLAGS = flags.FLAGS
 
@@ -147,6 +153,72 @@ def _check_flag(flag_name: str,
     verb = 'be' if should_be_set else 'not be'
     raise ValueError(f'{flag_name} must {verb} set when running with '
                      f'"--{other_flag_name}={FLAGS[other_flag_name].value}".')
+
+def run_mmseq(input_fasta, output_dir, FLAGS):
+    with open(input_fasta, "r") as f:
+        lines = [l.strip() for l in f.readlines()]
+    names = lines[::2]
+    seqs = lines[1::2]
+    chunk_size = len(seqs)
+    pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    s = 0
+    while s < len(seqs):
+        e = s + chunk_size
+        chunk_fasta = [el for tup in zip(names[s:e], seqs[s:e]) for el in tup]
+        s = e
+
+        prot_dir = os.path.join(output_dir, chunk_fasta[0][1:])
+        if os.path.exists(prot_dir):
+            # We've already computed this chunk
+            continue
+        mmseqs2.run(chunk_fasta[1], prot_dir)
+
+        for fname in os.listdir(output_dir):
+            if not os.path.splitext(fname)[-1] == ".a3m":
+                continue
+
+            fpath = os.path.join(output_dir, fname)
+
+            with open(fpath, "r") as fp:
+                a3ms = fp.read()
+
+            # Split by the null byte, excluding the terminating null byte
+            a3ms = a3ms.split('\x00')[:-1]
+
+            for a3m in a3ms:
+                name = a3m.split('\n', 1)[0][1:]
+                prot_dir = os.path.join(output_dir, name)
+                pathlib.Path(prot_dir).mkdir(parents=True, exist_ok=True)
+                with open(os.path.join(prot_dir, fname), "w") as fp:
+                    fp.write(a3m)
+
+            os.remove(fpath)
+            os.remove(fpath + ".dbtype")
+            os.remove(fpath + ".index")
+
+    hhsearch_pdb70_runner = hhsearch.HHSearch(
+        binary_path=FLAGS.hhsearch_binary_path,
+        databases=[FLAGS.pdb70_database_path]
+    )
+
+    for d in os.listdir(output_dir):
+        dpath = os.path.join(output_dir, d)
+        if not os.path.isdir(dpath):
+            continue
+        for fname in os.listdir(dpath):
+            fpath = os.path.join(dpath, fname)
+            if (not "uniref" in fname or
+                    not os.path.splitext(fname)[-1] == ".a3m"):
+                continue
+
+            with open(fpath, "r") as fp:
+                a3m = fp.read()
+
+            hhsearch_result = hhsearch_pdb70_runner.query(a3m)
+            pdb70_out_path = os.path.join(dpath, "pdb70_hits.hhr")
+            with open(pdb70_out_path, "w") as f:
+                f.write(hhsearch_result)
 
 
 def predict_structure(
@@ -309,6 +381,7 @@ def main(argv):
   _check_flag('uniprot_database_path', 'model_preset',
               should_be_set=run_multimer_system)
 
+
   if FLAGS.model_preset == 'monomer_casp14':
     num_ensemble = 8
   else:
@@ -334,6 +407,12 @@ def main(argv):
                          'true or false values.')
   else:  # Default is_prokaryote to False.
     is_prokaryote_list = [False] * len(fasta_names)
+
+  if FLAGS.use_mmseqs:
+      # Precalculate MSAs with MMSEQ API
+      mmseq_output_dir = os.path.join(FLAGS.output_dir, 'msas')
+      run_mmseq(FLAGS.fasta_paths, mmseq_output_dir, FLAGS)
+      FLAGS.use_precomputed_msas = True
 
   if run_multimer_system:
     template_searcher = hmmsearch.Hmmsearch(
@@ -391,7 +470,7 @@ def main(argv):
       model_config.data.eval.num_ensemble = num_ensemble
     model_params = data.get_model_haiku_params(
         model_name=model_name, data_dir=FLAGS.data_dir)
-    model_runner = model.RunModel(model_config, model_params)
+    model_runner = model.RunModel(model_config, model_params, is_training=FLAGS.is_training)
     model_runners[model_name] = model_runner
 
   logging.info('Have %d models: %s', len(model_runners),

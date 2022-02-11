@@ -91,6 +91,12 @@ flags.DEFINE_string(
     'will be owned by this user:group. By default, this is the current user. '
     'Valid options are: uid or uid:gid, non-numeric values are not recognised '
     'by Docker unless that user has been created within the container.')
+flags.DEFINE_boolean(
+    'is_training', False,
+    'Select whether to use is_training mode when running inference on sequence')
+flags.DEFINE_boolean(
+    'use_mmseqs', True,
+    'Select whether to use mmseqs to perform MSA')
 
 FLAGS = flags.FLAGS
 
@@ -215,6 +221,9 @@ def main(argv):
       f'--use_precomputed_msas={FLAGS.use_precomputed_msas}',
       f'--run_relax={FLAGS.run_relax}',
       f'--use_gpu_relax={use_gpu_relax}',
+      f'--is_training={FLAGS.is_training}',
+      f'--use_mmseqs={FLAGS.use_mmseqs}',
+
       '--logtostderr',
   ])
 
