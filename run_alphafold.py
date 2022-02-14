@@ -134,8 +134,8 @@ flags.DEFINE_boolean('is_training', False,
                      'inference on sequence')
 flags.DEFINE_boolean('use_mmseqs', True,
                      'Select whether to use mmseqs to perform MSA')
-flags.DEFINE_integer('num_models', 5,
-                     [1, 2, 3, 4, 5],
+flags.DEFINE_string('num_models', '5',
+                     ['1', '2', '3', '4', '5'],
                      'Specify the numnber of models to make')
 
 FLAGS = flags.FLAGS
@@ -392,7 +392,7 @@ def main(argv):
 
   model_runners = {}
   model_names = config.MODEL_PRESETS[FLAGS.model_preset]
-  for model_name in model_names[:FLAGS.num_models]:
+  for model_name in model_names[:int(FLAGS.num_models)]:
     model_config = config.model_config(model_name)
     if run_multimer_system:
       model_config.model.num_ensemble_eval = num_ensemble
