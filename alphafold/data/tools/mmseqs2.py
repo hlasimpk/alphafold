@@ -5,7 +5,6 @@ import time
 import tarfile
 import random
 from tqdm.autonotebook import tqdm
-from typing import Tuple, List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,9 +12,8 @@ logger = logging.getLogger(__name__)
 TQDM_BAR_FORMAT = '{l_bar}{bar}| {n_fmt}/{total_fmt} [elapsed: {elapsed} remaining: {remaining}]'
 
 
-def run_mmseqs(x, prefix, use_env=True, use_filter=True,
-               use_templates=False, filter=None, use_pairing=False,
-               host_url="https://a3m.mmseqs.com") -> Tuple[List[str], List[str]]:
+def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairing=False,
+               host_url="https://a3m.mmseqs.com") -> dict:
     submission_endpoint = "ticket/pair" if use_pairing else "ticket/msa"
 
     def submit(seqs, mode, N=101):
@@ -127,66 +125,25 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True,
                 # Download results
                 download(ID, tar_gz_file)
 
-            # prep list of a3m files
-            if use_pairing:
-                a3m_files = [f"{path}/pair.a3m"]
-            else:
-                a3m_files = [f"{path}/uniref.a3m"]
-                if use_env: a3m_files.append(f"{path}/bfd.mgnify30.metaeuk30.smag30.a3m")
+    # prep list of a3m files
+    if use_pairing:
+        a3m_files = [f"{path}/pair.a3m"]
+    else:
+        a3m_files = [f"{path}/uniref.a3m"]
+        if use_env: a3m_files.append(f"{path}/bfd.mgnify30.metaeuk30.smag30.a3m")
 
-            # extract a3m files
-            if any(not os.path.isfile(a3m_file) for a3m_file in a3m_files):
-                with tarfile.open(tar_gz_file) as tar_gz:
-                    tar_gz.extractall(path)
+    # extract a3m files
+    if any(not os.path.isfile(a3m_file) for a3m_file in a3m_files):
+        with tarfile.open(tar_gz_file) as tar_gz:
+            tar_gz.extractall(path)
 
-            # templates
-            if use_templates:
-                templates = {}
-                # print("seq\tpdb\tcid\tevalue")
-                for line in open(f"{path}/pdb70.m8", "r"):
-                    p = line.rstrip().split()
-                    M, pdb, qid, e_value = p[0], p[1], p[2], p[10]
-                    M = int(M)
-                    if M not in templates: templates[M] = []
-                    templates[M].append(pdb)
+    # gather a3m lines
+    a3m_lines = {}
+    for a3m_file in a3m_files:
+        name = pathlib.Path(a3m_file).name
+        for line in open(a3m_file, "r"):
+            if not name in a3m_lines:
+                a3m_lines[name] = []
+            a3m_lines[name].append(line)
 
-            template_paths = {}
-            for k, TMPL in templates.items():
-                TMPL_PATH = f"{prefix}_{mode}/templates_{k}"
-                if not os.path.isdir(TMPL_PATH):
-                    os.mkdir(TMPL_PATH)
-                    TMPL_LINE = ",".join(TMPL[:20])
-                    os.system(
-                        f"curl -s https://a3m-templates.mmseqs.com/template/{TMPL_LINE} | tar xzf - -C {TMPL_PATH}/")
-                    os.system(f"cp {TMPL_PATH}/pdb70_a3m.ffindex {TMPL_PATH}/pdb70_cs219.ffindex")
-                    os.system(f"touch {TMPL_PATH}/pdb70_cs219.ffdata")
-                template_paths[k] = TMPL_PATH
-
-            # gather a3m lines
-            a3m_lines = {}
-            for a3m_file in a3m_files:
-                update_M, M = True, None
-                for line in open(a3m_file, "r"):
-                    if len(line) > 0:
-                        if "\x00" in line:
-                            line = line.replace("\x00", "")
-                            update_M = True
-                        if line.startswith(">") and update_M:
-                            M = int(line[1:].rstrip())
-                            update_M = False
-                            if M not in a3m_lines: a3m_lines[M] = []
-                        a3m_lines[M].append(line)
-
-            # return results
-            a3m_lines = ["".join(a3m_lines[n]) for n in Ms]
-
-            if use_templates:
-                template_paths_ = []
-                for n in Ms:
-                    if n not in template_paths:
-                        template_paths_.append(None)
-                    else:
-                        template_paths_.append(template_paths[n])
-                template_paths = template_paths_
-
-    return (a3m_lines, template_paths) if use_templates else a3m_lines
+    return a3m_lines

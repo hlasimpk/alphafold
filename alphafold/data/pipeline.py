@@ -168,14 +168,14 @@ class DataPipeline:
         num_res = len(input_sequence)
 
         if self._use_mmseqs:
-            mmseqs2.run_mmseqs(input_fasta_str,
-                               msa_output_dir,
-                               use_templates=False)
-            uniref90_msa_a3m = os.path.join(msa_output_dir, 'uniref.a3m')
-            bfd_msa_a3m = os.path.join(msa_output_dir, 'bfd.mgnify30.metaeuk30.smag30.a3m')
-            mgnify_msa_a3m = os.path.join(msa_output_dir, 'bfd.mgnify30.metaeuk30.smag30.a3m')
+            a3m_lines = mmseqs2.run_mmseqs(input_fasta_str,
+                                           msa_output_dir)
 
-            pdb_templates_result = self.template_searcher.query(uniref90_msa)
+            uniref90_msa_a3m = ''.join(a3m_lines['uniref.a3m'])
+            bfd_msa_a3m = ''.join(a3m_lines['bfd.mgnify30.metaeuk30.smag30.a3m'])
+            mgnify_msa_a3m = ''.join(a3m_lines['bfd.mgnify30.metaeuk30.smag30.a3m'])
+
+            pdb_templates_result = self.template_searcher.query(uniref90_msa_a3m)
 
             pdb_hits_out_path = os.path.join(
                 msa_output_dir, f'pdb_hits.{self.template_searcher.output_format}')
