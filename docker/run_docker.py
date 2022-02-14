@@ -96,9 +96,9 @@ flags.DEFINE_boolean(
 flags.DEFINE_boolean(
     'use_mmseqs', True,
     'Select whether to use mmseqs to perform MSA')
-flags.DEFINE_integer(
-    'num_models', 5,
-    [1, 2, 3, 4, 5],
+flags.DEFINE_string(
+    'num_models', '5',
+    ['1', '2', '3', '4', '5'],
     'Specify the numnber of models to make')
 
 FLAGS = flags.FLAGS
