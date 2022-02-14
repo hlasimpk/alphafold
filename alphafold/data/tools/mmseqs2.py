@@ -142,6 +142,8 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
     for a3m_file in a3m_files:
         name = pathlib.Path(a3m_file).name
         for line in open(a3m_file, "r"):
+            if "\x00" in line:
+                line = line.replace("\x00", "")
             if not name in a3m_lines:
                 a3m_lines[name] = []
             a3m_lines[name].append(line)
