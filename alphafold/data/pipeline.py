@@ -168,7 +168,7 @@ class DataPipeline:
         num_res = len(input_sequence)
 
         if self._use_mmseqs:
-            a3m_lines = mmseqs2.run_mmseqs(input_fasta_str,
+            a3m_lines = mmseqs2.run_mmseqs(input_sequence,
                                            msa_output_dir)
 
             uniref90_msa_a3m = ''.join(a3m_lines['uniref.a3m'])
