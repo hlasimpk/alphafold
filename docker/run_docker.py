@@ -96,10 +96,10 @@ flags.DEFINE_boolean(
 flags.DEFINE_boolean(
     'use_mmseqs', True,
     'Select whether to use mmseqs to perform MSA')
-flags.DEFINE_enum(
-    'num_models', '5',
-    ['1', '2', '3', '4', '5'],
-    'Specify the numnber of models to make')
+flags.DEFINE_integer(
+    'num_models', 5,
+    'Specify the numnber of models to make, options: [1, 2, 3, 4, 5]',
+    lower_bound=1, upper_bound=5)
 
 FLAGS = flags.FLAGS
 
@@ -226,6 +226,7 @@ def main(argv):
         f'--use_gpu_relax={use_gpu_relax}',
         f'--is_training={FLAGS.is_training}',
         f'--use_mmseqs={FLAGS.use_mmseqs}',
+        f'--num_models={FLAGS.num_models}',
 
         '--logtostderr',
     ])

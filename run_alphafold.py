@@ -134,9 +134,9 @@ flags.DEFINE_boolean('is_training', False,
                      'inference on sequence')
 flags.DEFINE_boolean('use_mmseqs', True,
                      'Select whether to use mmseqs to perform MSA')
-flags.DEFINE_enum('num_models', '5',
-                  ['1', '2', '3', '4', '5'],
-                  'Specify the numnber of models to make')
+flags.DEFINE_integer('num_models', 5,
+                     'Specify the numnber of models to make, options: [1, 2, 3, 4, 5]',
+                     lower_bound=1, upper_bound=5)
 
 FLAGS = flags.FLAGS
 

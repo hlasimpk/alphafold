@@ -5,9 +5,7 @@ import time
 import tarfile
 import random
 from tqdm.autonotebook import tqdm
-import logging
-
-logger = logging.getLogger(__name__)
+from absl import logging
 
 TQDM_BAR_FORMAT = '{l_bar}{bar}| {n_fmt}/{total_fmt} [elapsed: {elapsed} remaining: {remaining}]'
 
@@ -26,7 +24,7 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
         try:
             out = res.json()
         except ValueError:
-            logger.error(f"Server didn't reply with json: {res.text}")
+            logging.error(f"Server didn't reply with json: {res.text}")
             out = {"status": "ERROR"}
         return out
 
@@ -35,13 +33,16 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
         try:
             out = res.json()
         except ValueError:
-            logger.error(f"Server didn't reply with json: {res.text}")
+            logging.error(f"Server didn't reply with json: {res.text}")
             out = {"status": "ERROR"}
         return out
 
     def download(ID, path):
         res = requests.get(f'{host_url}/result/download/{ID}')
-        with open(path, "wb") as out: out.write(res.content)
+        with open(path, "wb") as out:
+            out.write(res.content)
+
+    logging.info("Querying MMSeqs2 API")
 
     # process input x
     seqs = [x] if isinstance(x, str) else x
@@ -85,7 +86,7 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
                 out = submit(seqs_unique, mode, N)
                 while out["status"] in ["UNKNOWN", "RATELIMIT"]:
                     sleep_time = 5 + random.randint(0, 5)
-                    logger.error(f"Sleeping for {sleep_time}s. Reason: {out['status']}")
+                    logging.error(f"Sleeping for {sleep_time}s. Reason: {out['status']}")
                     # resubmit
                     time.sleep(sleep_time)
                     out = submit(seqs_unique, mode, N)
@@ -103,7 +104,7 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
                 pbar.set_description(out["status"])
                 while out["status"] in ["UNKNOWN", "RUNNING", "PENDING"]:
                     t = 5 + random.randint(0, 5)
-                    logger.error(f"Sleeping for {t}s. Reason: {out['status']}")
+                    logging.error(f"Sleeping for {t}s. Reason: {out['status']}")
                     time.sleep(t)
                     out = status(ID)
                     pbar.set_description(out["status"])
@@ -147,5 +148,7 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
             if not name in a3m_lines:
                 a3m_lines[name] = []
             a3m_lines[name].append(line)
+
+    logging.info('Finished querying MMseqs2 API')
 
     return a3m_lines
