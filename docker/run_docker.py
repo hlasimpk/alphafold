@@ -60,6 +60,9 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'docker_image_name', 'alphafold', 'Name of the AlphaFold Docker image.')
 flags.DEFINE_string(
+    'template_mmcif_dir', None, 'Path to a directory with '
+    'template mmCIF structures, each named <pdb_id>.cif')
+flags.DEFINE_string(
     'max_template_date', None,
     'Maximum template release date to consider (ISO-8601 format: YYYY-MM-DD). '
     'Important if folding historical test sets.')
@@ -217,6 +220,7 @@ def main(argv):
 
     command_args.extend([
         f'--output_dir={output_target_path}',
+        f'--template_mmcif_dir={FLAGS.template_mmcif_dir}',
         f'--max_template_date={FLAGS.max_template_date}',
         f'--db_preset={FLAGS.db_preset}',
         f'--model_preset={FLAGS.model_preset}',

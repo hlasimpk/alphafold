@@ -59,7 +59,6 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
 
     if use_pairing:
         mode = ""
-        use_templates = False
         use_env = False
 
     # define path
@@ -71,9 +70,7 @@ def run_mmseqs(x, prefix, use_env=True, use_filter=True, filter=None, use_pairin
     N, REDO = 101, True
 
     # deduplicate and keep track of order
-    seqs_unique = []
-    # TODO this might be slow for large sets
-    [seqs_unique.append(x) for x in seqs if x not in seqs_unique]
+    seqs_unique = list(set(seqs))
     Ms = [N + seqs_unique.index(seq) for seq in seqs]
     # lets do it!
     if not os.path.isfile(tar_gz_file):
