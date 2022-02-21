@@ -161,7 +161,10 @@ def main(argv):
         FLAGS.data_dir, 'pdb_seqres', 'pdb_seqres.txt')
 
     # Path to a directory with template mmCIF structures, each named <pdb_id>.cif.
-    template_mmcif_dir = os.path.join(FLAGS.data_dir, 'pdb_mmcif', 'mmcif_files')
+    if FLAGS.template_mmcif_dir:
+        template_mmcif_dir = FLAGS.template_mmcif_dir
+    else:
+        template_mmcif_dir = os.path.join(FLAGS.data_dir, 'pdb_mmcif', 'mmcif_files')
 
     # Path to a file mapping obsolete PDB IDs to their replacements.
     obsolete_pdbs_path = os.path.join(FLAGS.data_dir, 'pdb_mmcif', 'obsolete.dat')
@@ -220,7 +223,6 @@ def main(argv):
 
     command_args.extend([
         f'--output_dir={output_target_path}',
-        f'--template_mmcif_dir={FLAGS.template_mmcif_dir}',
         f'--max_template_date={FLAGS.max_template_date}',
         f'--db_preset={FLAGS.db_preset}',
         f'--model_preset={FLAGS.model_preset}',
